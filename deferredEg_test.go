@@ -8,7 +8,7 @@ import (
 )
 
 // test if func gets executed after timeout.
-func TestDefExec_NormalBehavior(t *testing.T) {
+func Test_Exec_NormalBehavior(t *testing.T) {
 	startTime := time.Now()
 	execTime := time.Now()
 	// new context with a 2 second timeout
@@ -17,13 +17,13 @@ func TestDefExec_NormalBehavior(t *testing.T) {
 
 	// get a new deferredErrGroupScheduler with a 1 second timeout.
 	// functions will be executed after one second delay.
-	defExec, ctx := NewDeferredErrGroup(ctx, time.Second)
+	exec, ctx := NewDeferredErrGroup(ctx, time.Second)
 
 	// defer execute func setting value of execTime to be 1.
-	defExec.Go(ctx, func() error { execTime = time.Now(); return nil })
+	exec.Go(ctx, func() error { execTime = time.Now(); return nil })
 
 	// wait for func executions to be over.
-	err := defExec.Wait()
+	err := exec.Wait()
 
 	// there should be no error.
 	if err != nil {
@@ -37,7 +37,7 @@ func TestDefExec_NormalBehavior(t *testing.T) {
 }
 
 // test if global timeout cancells func execution.
-func TestDefExec_GloabalTimeout(t *testing.T) {
+func Test_Exec_GloabalTimeout(t *testing.T) {
 	var c int
 
 	// new context with a 1 second timeout
@@ -46,13 +46,13 @@ func TestDefExec_GloabalTimeout(t *testing.T) {
 
 	// get a new deferredErrGroupScheduler with a 2 second timeout.
 	// functions will be executed after one second delay.
-	defExec, ctx := NewDeferredErrGroup(ctx, 2*time.Second)
+	exec, ctx := NewDeferredErrGroup(ctx, 2*time.Second)
 
 	// defer execute func.
-	defExec.Go(ctx, func() error { c = 1; return nil })
+	exec.Go(ctx, func() error { c = 1; return nil })
 
 	// wait for executions of all funcs to be over.
-	err := defExec.Wait()
+	err := exec.Wait()
 
 	// the error should be not be nil since global context is over before deferred timeout.
 	if err == nil {
@@ -71,23 +71,23 @@ func TestDefExec_GloabalTimeout(t *testing.T) {
 }
 
 // test if cancelling global context cancells the func execution
-func TestDefExec_GlobalCancel(t *testing.T) {
+func Test_Exec_GlobalCancel(t *testing.T) {
 	var c int
 	// new context with a cancel func
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// get a new deferredErrGroupScheduler with a 1 second timeout.
 	// functions will be executed after one second delay.
-	defExec, ctx := NewDeferredErrGroup(ctx, time.Second)
+	exec, ctx := NewDeferredErrGroup(ctx, time.Second)
 
 	// defer execute func that sets value of c to 1.
-	defExec.Go(ctx, func() error { c = 1; return nil })
+	exec.Go(ctx, func() error { c = 1; return nil })
 
 	// cancel global context.
 	cancel()
 
 	// wait for deferred execution func calls to be over.
-	err := defExec.Wait()
+	err := exec.Wait()
 
 	// error should not be nil since func was cancelled using global context canceller.
 	if err == nil {
@@ -106,7 +106,7 @@ func TestDefExec_GlobalCancel(t *testing.T) {
 }
 
 // cancel one func but let others run
-func TestDefExec_CancelOneFunc(t *testing.T) {
+func Test_Exec_CancelOneFunc(t *testing.T) {
 	var c [2]int
 
 	// new context with a 2 second timeout
@@ -115,19 +115,19 @@ func TestDefExec_CancelOneFunc(t *testing.T) {
 
 	// get a new deferredErrGroupScheduler with a 1 second timeout.
 	// functions will be executed after one second delay.
-	defExec, ctx := NewDeferredErrGroup(ctx, time.Second)
+	exec, ctx := NewDeferredErrGroup(ctx, time.Second)
 
 	// defer execute func setting value of c to be 1.
-	key := defExec.Go(ctx, func() error { c[0] = 1; return nil })
-	defExec.Go(ctx, func() error { c[1] = 1; return nil })
+	key := exec.Go(ctx, func() error { c[0] = 1; return nil })
+	exec.Go(ctx, func() error { c[1] = 1; return nil })
 
 	// cancel execution of first func.
-	if err := defExec.Cancel(key); err != nil {
+	if err := exec.Cancel(key); err != nil {
 		t.Fatal(err)
 	}
 
 	// wait for func executions to be over.
-	err := defExec.Wait()
+	err := exec.Wait()
 
 	// error should not be nil.
 	if err == nil {
@@ -145,7 +145,7 @@ func TestDefExec_CancelOneFunc(t *testing.T) {
 }
 
 // one of the funcs errors out. see if everything gets cancelled.
-func TestDefExec_OneFuncErrorsOut(t *testing.T) {
+func Test_Exec_OneFuncErrorsOut(t *testing.T) {
 	var c [2]int
 
 	// new context with a 2 second timeout
@@ -154,14 +154,14 @@ func TestDefExec_OneFuncErrorsOut(t *testing.T) {
 
 	// get a new deferredErrGroupScheduler with a 1 second timeout.
 	// functions will be executed after one second delay.
-	defExec, ctx := NewDeferredErrGroup(ctx, time.Second)
+	exec, ctx := NewDeferredErrGroup(ctx, time.Second)
 
 	// defer execute func setting value of c to be 1.
-	defExec.Go(ctx, func() error { c[0] = 1; return fmt.Errorf("to err is human") })
-	defExec.Go(ctx, func() error { time.Sleep(time.Millisecond * 100); c[1] = 1; return nil })
+	exec.Go(ctx, func() error { c[0] = 1; return fmt.Errorf("to err is human") })
+	exec.Go(ctx, func() error { time.Sleep(time.Millisecond * 100); c[1] = 1; return nil })
 
 	// wait for func executions to be over.
-	err := defExec.Wait()
+	err := exec.Wait()
 
 	// error should not be nil.
 	if err == nil {
