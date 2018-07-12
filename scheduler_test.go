@@ -17,7 +17,7 @@ func Test_Exec_NormalBehavior(t *testing.T) {
 
 	// get a new deferredErrGroupScheduler with a 1 second timeout.
 	// functions will be executed after one second delay.
-	group, ctx := NewDeferredErrGroup(ctx, time.Second)
+	group, ctx := New(ctx, NewTimeoutTrigger(time.Second))
 
 	// defer execute func setting value of execTime to be 1.
 	group.Go(ctx, func() error { execTime = time.Now(); return nil })
@@ -46,7 +46,7 @@ func Test_Exec_GloabalTimeout(t *testing.T) {
 
 	// get a new deferredErrGroupScheduler with a 2 second timeout.
 	// functions will be executed after one second delay.
-	group, ctx := NewDeferredErrGroup(ctx, 2*time.Second)
+	group, ctx := New(ctx, NewTimeoutTrigger(2*time.Second))
 
 	// defer execute func.
 	group.Go(ctx, func() error { c = 1; return nil })
@@ -78,7 +78,7 @@ func Test_Exec_GlobalCancel(t *testing.T) {
 
 	// get a new deferredErrGroupScheduler with a 1 second timeout.
 	// functions will be executed after one second delay.
-	group, ctx := NewDeferredErrGroup(ctx, time.Second)
+	group, ctx := New(ctx, NewTimeoutTrigger(time.Second))
 
 	// defer execute func that sets value of c to 1.
 	group.Go(ctx, func() error { c = 1; return nil })
@@ -115,7 +115,7 @@ func Test_Exec_CancelOneFunc(t *testing.T) {
 
 	// get a new deferredErrGroupScheduler with a 1 second timeout.
 	// functions will be executed after one second delay.
-	group, ctx := NewDeferredErrGroup(ctx, time.Second)
+	group, ctx := New(ctx, NewTimeoutTrigger(time.Second))
 
 	// defer execute func setting value of c to be 1.
 	key := group.Go(ctx, func() error { c[0] = 1; return nil })
@@ -154,7 +154,7 @@ func Test_Exec_OneFuncErrorsOut(t *testing.T) {
 
 	// get a new deferredErrGroupScheduler with a 1 second timeout.
 	// functions will be executed after one second delay.
-	group, ctx := NewDeferredErrGroup(ctx, time.Second)
+	group, ctx := New(ctx, NewTimeoutTrigger(time.Second))
 
 	// defer execute func setting value of c to be 1.
 	group.Go(ctx, func() error { c[0] = 1; return fmt.Errorf("to err is human") })

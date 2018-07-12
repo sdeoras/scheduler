@@ -2,24 +2,10 @@ package scheduler
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	"golang.org/x/sync/errgroup"
 )
-
-// deferredErrGroupScheduler implements Scheduler interface providing deferred execution for a func.
-type deferredErrGroupScheduler struct {
-	// dur is time duration to wait before executing func.
-	dur time.Duration
-	// m is map of cancel func that can be accessed using keys.
-	m map[string]context.CancelFunc
-	// mu is a lock for modifying above map.
-	mu sync.Mutex
-	// eg is error group
-	eg *errgroup.Group
-}
 
 // Func implements Scheduler interface to provide a functional literal for use in errgroup.
 // Such func will execute the input func deferred in time.
@@ -36,10 +22,28 @@ func (d *deferredErrGroupScheduler) Go(ctx context.Context,
 	d.m[key] = cancelFunc
 	d.mu.Unlock()
 
+	var trig context.Context
+	var trigCancelFunc context.CancelFunc
+
+	switch v := d.trig.value.(type) {
+	case time.Duration:
+		// create a context based on timeout
+		trig, trigCancelFunc = context.WithTimeout(context.Background(), v)
+		// spawn a go-routine that will call cancel func once triggered
+		go func() {
+			select {
+			case <-trig.Done():
+				trigCancelFunc()
+			}
+		}()
+	case context.Context:
+		trig = v
+	}
+
 	// spawn func within an error group.
 	d.eg.Go(func() error {
 		select {
-		case <-time.After(d.dur):
+		case <-trig.Done():
 			err := f()
 			d.Cancel(key)
 			return err
