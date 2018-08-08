@@ -24,6 +24,11 @@ func NewTimeoutTrigger(dur time.Duration) Trigger {
 	return Trigger{value: dur}
 }
 
+// TriggerNow provides an immediate trigger mechanism
+func TriggerNow() Trigger {
+	return Trigger{value: time.Duration(0)}
+}
+
 // NewContextTrigger provides a new trigger based on a context.
 // Trigger fires when input context context is done.
 func NewContextTrigger(ctx context.Context) Trigger {
